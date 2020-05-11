@@ -235,8 +235,15 @@ class DinDataParser(CommonCompanyParser):
         return din_rows_success, din_rows_error
 
 def main():
-    LLPDataParser("input_files/eirSeptember_2018.csv", "out_files/llp_details.csv", 10).parse()
-    DinDataParser("input_files/eirSeptember_2018.csv", "out_files/din_details.csv", 10).parse()
+    # This is to parse "View Company or LLP Master Data"
+    LLP_INPUT = "input_files/eirSeptember_2018.csv"
+    LLP_OUPUT = "out_files/llp_details.csv"
+    LLPDataParser(LLP_INPUT, LLP_OUPUT, 10).parse()
+
+    # This is to parse "din details"
+    DIN_INPUT = "input_files/eirSeptember_2018.csv"
+    DIN_OUTPUT = "out_files/din_details.csv"
+    DinDataParser(DIN_INPUT, DIN_OUTPUT, 10).parse()
 
 if __name__ == "__main__":
     main()
