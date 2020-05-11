@@ -235,6 +235,7 @@ class DinDataParser(CommonCompanyParser):
         return din_rows_success, din_rows_error
 
 def main():
+    LLPDataParser("input_files/eirSeptember_2018.csv", "out_files/llp_details.csv", 10).parse()
     DinDataParser("input_files/eirSeptember_2018.csv", "out_files/din_details.csv", 10).parse()
 
 if __name__ == "__main__":
