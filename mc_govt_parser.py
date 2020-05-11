@@ -1,8 +1,8 @@
 import csv
 import traceback
 from abc import abstractmethod
-from asyncio import sleep
 from random import Random
+from time import sleep
 
 import requests
 import sys
@@ -39,6 +39,7 @@ class CommonCompanyDetail:
 
     def get_parsed_results(self):
         html_result = self._get_http_post_results()
+        # return success and error from here
         return self._parse_html(html_result)
 
     @abstractmethod
@@ -49,9 +50,9 @@ class CommonCompanyDetail:
 
 class LLPDetail(CommonCompanyDetail):
     def __init__(self, cin):
-        url = ""
-        form_data = {"cin": cin}
-        referer = ""
+        url = "http://www.mca.gov.in/mcafoportal/companyLLPMasterData.do"
+        form_data = {"companyID": cin}
+        referer = "http://www.mca.gov.in/mcafoportal/viewCompanyMasterData.do"
         super().__init__(url, form_data, cin, referer)
         self.cin = cin
 
@@ -106,7 +107,7 @@ class DinDetail(CommonCompanyDetail):
             return result
         soup = BeautifulSoup(document_str, 'html.parser')
         table_data = soup.find(id="enquireDINDetailsId")
-        print(soup.prettify())
+        # print(soup.prettify())
         for each in table_data.find_all_next("tr"):
             all_tds = each.find_all("td")
             if len(all_tds) >= 2:
@@ -121,65 +122,76 @@ class DinDetail(CommonCompanyDetail):
 
 
 class CommonCompanyParser:
-    def __init__(self, input_pks, output_csv, max_results):
-        self.input_pks = input_pks
+    def __init__(self, input_csv, output_csv, max_results):
+        self.input_csv = input_csv
         self.max_results = max_results
         self.output_csv = output_csv
 
-    def get_details(self):
+    def _read_ids(self):
+        ids = []
+        with open(self.input_csv) as f:
+            csv_reader = csv.DictReader(f)
+            for row in csv_reader:
+                if row["CIN"] is not None:
+                    ids.append(row["CIN"])
+        return ids
+
+    def parse(self):
         # main class
         # for each ids
         # random wait
         # get each row
         # add to rows
         # write csv
+        input_pks = self._read_ids()
         random = Random()
         final_results = []
         counter = 0
-        for id in self.input_pks:
+        for id in input_pks:
             counter += 1
             if counter == self.max_results:
                 break
             print("{} Getting results for id: {}".format(str(counter), id))
             print("making request")
-            row = self.get_each_row(id)
+            row = self._get_rows_for_pk(id)
             final_results.extend(row)
             randint = random.randint(2, 10)
             print("Sleeping for {}".format(randint))
             sleep(randint)
             print("Request done")
-        self.write_csv(final_results)
+        self._write_csv(final_results)
 
-    def get_each_row(self, pk):
+    @abstractmethod
+    def _get_rows_for_pk(self, pk):
         # return each row
         # make http_request
         # parse html
         # have try catch
         pass
 
-    def write_csv(self, csv_dict_rows):
+    def _write_csv(self, csv_dict_rows):
         print("Writing to csv file {}".format(self.output_csv))
         headers = csv_dict_rows[0].keys()
-        with open("sample_output.csv", "w") as f1:
+        with open(self.output_csv, "w") as f1:
             writer = csv.DictWriter(f1, headers)
             writer.writeheader()
             writer.writerows(csv_dict_rows)
 
 
 class LLPDataParser(CommonCompanyParser):
-    def __init__(self, input_pks, output_csv, max_results):
-        super().__init__(input_pks, output_csv, max_results)
+    def __init__(self, input_csv, output_csv, max_results):
+        super().__init__(input_csv, output_csv, max_results)
 
-    def get_each_row(self, pk):
+    def _get_rows_for_pk(self, pk):
         llp_detail = LLPDetail(pk)
-        return llp_detail.get_parsed_results()
+        return [llp_detail.get_parsed_results()]
 
 
 class DinDataParser(CommonCompanyParser):
-    def __init__(self, input_pks, output_csv, max_results):
-        super().__init__(input_pks, output_csv, max_results)
+    def __init__(self, input_csv, output_csv, max_results):
+        super().__init__(input_csv, output_csv, max_results)
 
-    def get_each_row(self, pk):
+    def _get_rows_for_pk(self, pk):
         llp_detail = LLPDetail(pk)
         dins = llp_detail.get_dins()
         din_rows = []

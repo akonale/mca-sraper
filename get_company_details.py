@@ -20,7 +20,7 @@ def get_results(document):
     return result
 
 def parse_result_html():
-    with open("sample_company_result.html") as f:
+    with open("sample_llp_response.html") as f:
         document = f.read()
         result_dict = get_results(document)
         return result_dict
