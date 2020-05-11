@@ -1,11 +1,11 @@
 import csv
+import sys
 import traceback
 from abc import abstractmethod
 from random import Random
 from time import sleep
 
 import requests
-import sys
 from bs4 import BeautifulSoup
 
 
@@ -27,20 +27,30 @@ class CommonCompanyDetail:
 
     def _get_http_post_results(self):
         # Superclass get post results
-        print("Making request")
-        try:
-            post = requests.post(self.url, data=self.form_data, headers=self.headers, timeout=20,
-                                 cookies={"Cookie": "some"})
-            # todo: response code
-            return post.text
-        except Exception as e:
-            traceback.print_exc(file=sys.stdout)
-            return self.ERROR_TEXT
+        print("Making request: Start")
+        post = requests.post(self.url, data=self.form_data, headers=self.headers, timeout=20,
+                             cookies={"Cookie": "some"})
+        print("Making post request: Done")
+        return post
 
     def get_parsed_results(self):
-        html_result = self._get_http_post_results()
-        # return success and error from here
-        return self._parse_html(html_result)
+        errors = {}
+        success = {}
+        try:
+            post_response = self._get_http_post_results()
+            if post_response.status_code != 200:
+                errors["ID"] = self.pk
+                errors["STATUS_CODE"] = post_response.status_code
+                errors["ERROR MESSAGE"] = post_response.reason
+                return success, errors
+            return self._parse_html(post_response.text), errors
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            errors["ID"] = self.pk
+            errors["STATUS_CODE"] = 0
+            errors["ERROR MESSAGE"] = str(e)
+            return success, errors
+
 
     @abstractmethod
     def _parse_html(self, document_str):
@@ -63,6 +73,7 @@ class LLPDetail(CommonCompanyDetail):
             return result
         soup = BeautifulSoup(document_str, 'html.parser')
         filing_results = soup.find(id="companyMasterData")
+        print("Parsing html")
 
         for each in filing_results.find_all_next("tr"):
             all_tds = each.find_all("td")
@@ -77,19 +88,20 @@ class LLPDetail(CommonCompanyDetail):
         return result
 
     def get_dins(self):
-        result_html = self._get_http_post_results()
-        if result_html == self.ERROR_TEXT:
-            return []
-
-        soup = BeautifulSoup(result_html, 'html.parser')
+        post_response = self._get_http_post_results()
+        soup = BeautifulSoup(post_response.text, 'html.parser')
         signatories = soup.find(id="signatories")
         dins = []
-        for each in signatories.find_all_next("tr"):
-            all_tds = each.find_all("td")
-            if all_tds[0] is not None:
-                din_link = all_tds[0].find_next("a")
-                if din_link is not None:
-                    dins.append(din_link.string.strip())
+        # print(soup.prettify())
+        signatory_table = signatories.find_all_next("table")
+        if signatory_table is not None:
+            din_rows = signatory_table[0].find_all_next("tr")
+            for each in din_rows:
+                all_tds = each.find_all("td")
+                if all_tds is not None and len(all_tds) > 0:
+                    din_link = all_tds[0].find_next("a")
+                    if din_link is not None:
+                        dins.append(din_link.string.strip())
         return dins
 
 
@@ -146,20 +158,21 @@ class CommonCompanyParser:
         input_pks = self._read_ids()
         random = Random()
         final_results = []
+        errored_result = []
         counter = 0
         for id in input_pks:
             counter += 1
             if counter == self.max_results:
                 break
             print("{} Getting results for id: {}".format(str(counter), id))
-            print("making request")
-            row = self._get_rows_for_pk(id)
-            final_results.extend(row)
+            success_rows, error_rows = self._get_rows_for_pk(id)
+            final_results.extend(success_rows)
+            errored_result.extend(error_rows)
             randint = random.randint(2, 10)
             print("Sleeping for {}".format(randint))
             sleep(randint)
             print("Request done")
-        self._write_csv(final_results)
+        self._write_csv(final_results, errored_result)
 
     @abstractmethod
     def _get_rows_for_pk(self, pk):
@@ -169,13 +182,21 @@ class CommonCompanyParser:
         # have try catch
         pass
 
-    def _write_csv(self, csv_dict_rows):
-        print("Writing to csv file {}".format(self.output_csv))
-        headers = csv_dict_rows[0].keys()
-        with open(self.output_csv, "w") as f1:
-            writer = csv.DictWriter(f1, headers)
-            writer.writeheader()
-            writer.writerows(csv_dict_rows)
+    def _write_csv(self, csv_dict_rows, errored_rows):
+        if len(csv_dict_rows) > 0:
+            print("Writing {} success rows to csv file {}".format(len(csv_dict_rows), self.output_csv))
+            with open(self.output_csv, "w") as f1:
+                writer = csv.DictWriter(f1, csv_dict_rows[0].keys())
+                writer.writeheader()
+                writer.writerows(csv_dict_rows)
+
+        if len(errored_rows) > 0:
+            error_csv = "{}_errors.csv".format(self.output_csv.replace(".csv", ""))
+            print("Writing {} success rows to csv file {}".format(len(errored_rows), error_csv))
+            with open(error_csv, "w") as f1:
+                writer = csv.DictWriter(f1, errored_rows[0].keys())
+                writer.writeheader()
+                writer.writerows(errored_rows)
 
 
 class LLPDataParser(CommonCompanyParser):
@@ -184,7 +205,8 @@ class LLPDataParser(CommonCompanyParser):
 
     def _get_rows_for_pk(self, pk):
         llp_detail = LLPDetail(pk)
-        return [llp_detail.get_parsed_results()]
+        success, error = llp_detail.get_parsed_results()
+        return [success], [error]
 
 
 class DinDataParser(CommonCompanyParser):
@@ -193,10 +215,21 @@ class DinDataParser(CommonCompanyParser):
 
     def _get_rows_for_pk(self, pk):
         llp_detail = LLPDetail(pk)
-        dins = llp_detail.get_dins()
-        din_rows = []
+        din_rows_success = []
+        din_rows_error = []
+        try:
+            dins = llp_detail.get_dins()
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            errors = {"ID": pk, "STATUS_CODE": 0, "ERROR MESSAGE": str(e)}
+            din_rows_error = [errors]
+            dins = []
+
         for din in dins:
             detail = DinDetail(din, pk)
-            results = detail.get_parsed_results()
-            din_rows.append(results)
-        return din_rows
+            success, error = detail.get_parsed_results()
+            if bool(success):
+                din_rows_success.append(success)
+            if bool(error):
+                din_rows_error.append(error)
+        return din_rows_success, din_rows_error
