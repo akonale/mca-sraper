@@ -238,12 +238,14 @@ def main():
     # This is to parse "View Company or LLP Master Data"
     LLP_INPUT = "input_files/eirSeptember_2018.csv"
     LLP_OUPUT = "out_files/llp_details.csv"
-    LLPDataParser(LLP_INPUT, LLP_OUPUT, 10).parse()
+    LLP_MAX_RESULTS = 10
+    LLPDataParser(LLP_INPUT, LLP_OUPUT, LLP_MAX_RESULTS).parse()
 
     # This is to parse "din details"
     DIN_INPUT = "input_files/eirSeptember_2018.csv"
     DIN_OUTPUT = "out_files/din_details.csv"
-    DinDataParser(DIN_INPUT, DIN_OUTPUT, 10).parse()
+    DIN_MAX_RESULTS = 10
+    DinDataParser(DIN_INPUT, DIN_OUTPUT, DIN_MAX_RESULTS).parse()
 
 if __name__ == "__main__":
     main()
