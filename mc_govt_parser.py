@@ -233,3 +233,9 @@ class DinDataParser(CommonCompanyParser):
             if bool(error):
                 din_rows_error.append(error)
         return din_rows_success, din_rows_error
+
+def main():
+    DinDataParser("input_files/eirSeptember_2018.csv", "out_files/din_details.csv", 10).parse()
+
+if __name__ == "__main__":
+    main()
