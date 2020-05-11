@@ -100,7 +100,7 @@ class LLPDetail(CommonCompanyDetail):
                 all_tds = each.find_all("td")
                 if all_tds is not None and len(all_tds) > 0:
                     din_link = all_tds[0].find_next("a")
-                    if din_link is not None:
+                    if din_link is not None and din_link.string is not None:
                         dins.append(din_link.string.strip())
         return dins
 
