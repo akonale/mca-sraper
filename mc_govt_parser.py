@@ -51,7 +51,6 @@ class CommonCompanyDetail:
             errors["ERROR MESSAGE"] = str(e)
             return success, errors
 
-
     @abstractmethod
     def _parse_html(self, document_str):
         # returns each row of csv
@@ -186,7 +185,7 @@ class CommonCompanyParser:
         if len(csv_dict_rows) > 0:
             print("Writing {} success rows to csv file {}".format(len(csv_dict_rows), self.output_csv))
             with open(self.output_csv, "w") as f1:
-                writer = csv.DictWriter(f1, csv_dict_rows[0].keys())
+                writer = csv.DictWriter(f1, csv_dict_rows[0].keys(), extrasaction='ignore')
                 writer.writeheader()
                 writer.writerows(csv_dict_rows)
 
@@ -234,6 +233,7 @@ class DinDataParser(CommonCompanyParser):
                 din_rows_error.append(error)
         return din_rows_success, din_rows_error
 
+
 def main():
     # This is to parse "View Company or LLP Master Data"
     LLP_INPUT = "input_files/eirSeptember_2018.csv"
@@ -246,6 +246,7 @@ def main():
     DIN_OUTPUT = "out_files/din_details.csv"
     DIN_MAX_RESULTS = 10
     DinDataParser(DIN_INPUT, DIN_OUTPUT, DIN_MAX_RESULTS).parse()
+
 
 if __name__ == "__main__":
     main()
