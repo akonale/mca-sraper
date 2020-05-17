@@ -118,7 +118,8 @@ class DinDetail(CommonCompanyDetail):
             return result
         soup = BeautifulSoup(document_str, 'html.parser')
         table_data = soup.find(id="enquireDINDetailsId")
-        # print(soup.prettify())
+        with open("out_files/sample.html", "w") as f:
+            f.write(soup.prettify())
         for each in table_data.find_all_next("tr"):
             all_tds = each.find_all("td")
             if len(all_tds) >= 2:
@@ -193,7 +194,7 @@ class CommonCompanyParser:
             error_csv = "{}_errors.csv".format(self.output_csv.replace(".csv", ""))
             print("Writing {} success rows to csv file {}".format(len(errored_rows), error_csv))
             with open(error_csv, "w") as f1:
-                writer = csv.DictWriter(f1, errored_rows[0].keys())
+                writer = csv.DictWriter(f1, errored_rows[0].keys(), extrasaction='ignore')
                 writer.writeheader()
                 writer.writerows(errored_rows)
 
