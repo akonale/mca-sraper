@@ -5,4 +5,4 @@ set +x
 git checkout .
 git pull
 
-python3 lambda_function.py &
+python3 lambda_function.py
