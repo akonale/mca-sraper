@@ -1,0 +1,6 @@
+{
+  "bucket": "ajaykonale",
+  "input_file": "eirSeptember_2018.csv",
+  "ouput_path": "out_2018",
+  "max_results": 3
+}

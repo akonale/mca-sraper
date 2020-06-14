@@ -17,12 +17,12 @@ if not os.path.exists(out_path):
     os.mkdir(out_path)
 
 
-event = {
-    "bucket": "ajaykonale",
-    "input_file": "eirSeptember_2018.csv",
-    "ouput_path": "out_2018",
-    "max_results": 3
-}
+# event = {
+#     "bucket": "ajaykonale",
+#     "input_file": "eirSeptember_2018.csv",
+#     "ouput_path": "out_2018",
+#     "max_results": 3
+# }
 def lambda_handler(event, context):
     print(event)
 
