@@ -36,7 +36,7 @@ def lambda_handler(event, context):
     s3_client.download_file(bucket, input_s3_file, in_file)
 
     LLPDataParser(in_file, os.path.join(out_path, "llp_details.csv"), max_results).parse()
-    DinDataParser(in_file, os.path.join(out_path, "llp_details.csv"), max_results).parse()
+    DinDataParser(in_file, os.path.join(out_path, "din_details.csv"), max_results).parse()
 
     onlyfiles = [f for f in os.listdir(out_path) if isfile(join(out_path, f))]
     print("Files to upload: ", onlyfiles)
