@@ -1,6 +1,6 @@
 {
   "bucket": "ajaykonale",
-  "input_file": "eirSeptember_2018.csv",
-  "ouput_path": "out_2018",
+  "input_file": "mc_parser/eirSeptember_2018.csv",
+  "output_path": "mc_parser/out_2018",
   "max_results": 3
 }
